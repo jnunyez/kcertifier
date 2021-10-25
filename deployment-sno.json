@@ -1,0 +1,55 @@
+{
+  "kind": "Cluster",
+  "name": "ocpd",  
+  "openshift_version": "4.8",
+  "ocp_release_image": "quay.io/openshift-release-dev/ocp-release:4.8.5-x86_64",
+  "base_dns_domain": "lab.local",
+  "hyperthreading": "all",
+  "ingress_vip": "192.167.124.8",
+  "schedulable_masters": false,
+  "high_availability_mode": "None",
+  "user_managed_networking": false,
+  "platform": {
+    "type": "baremetal"
+   },
+  "cluster_networks": [
+    {
+      "cidr": "10.128.0.0/14",
+      "host_prefix": 23
+    }
+  ],
+  "service_networks": [
+    {
+      "cidr": "172.31.0.0/16"
+    }
+  ],
+  "machine_networks": [
+    {
+      "cidr": "192.168.1.0/25"
+    }
+  ],
+  "network_type": "OVNKubernetes",
+  "additional_ntp_source": "ntp1.hetzner.de",
+  "vip_dhcp_allocation": false,      
+  "ssh_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJrK0Zc4Y/dkqN6CWPT+gMnxhbWZpiBHuzhQl0J7tpqR jonunez@gmail.com",
+  "pull_secret": "{"
+"  \"auths\": {"
+"    \"cloud.openshift.com\": {"
+"      \"auth\": \"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfZjBjY2FmYWYyZTkyNDUwMGI4NDMyYzdjOWZjMzc0MGE6M1BDMjkxVlhDNlNCTVZNN1ZITUM1TVNYSlZJTjVLQUxUR1lKRTZMMDFXSFJIWDFCOEdWVkdRQ0lENjNVWk9JUg==\","
+"      \"email\": \"jnunez@redhat.com\""
+"    },"
+"    \"quay.io\": {"
+"      \"auth\": \"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K29jbV9hY2Nlc3NfZjBjY2FmYWYyZTkyNDUwMGI4NDMyYzdjOWZjMzc0MGE6M1BDMjkxVlhDNlNCTVZNN1ZITUM1TVNYSlZJTjVLQUxUR1lKRTZMMDFXSFJIWDFCOEdWVkdRQ0lENjNVWk9JUg==\","
+"      \"email\": \"jnunez@redhat.com\""
+"    },"
+"    \"registry.connect.redhat.com\": {"
+"      \"auth\": \"fHVoYy1wb29sLTFiZDFmZjZlLWYyZGQtNDYwMC05ZWMxLTU1NTYwOGQ2M2Q5ODpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSmxPREJsWm1WbFpHSm1aV00wWmpJeFlUZzNORE00WlRRNVkyTXlaakF4TmlKOS5rSXVnUVM2dmR5ZVR3b04wRlZRNkpQdVFIZVN1b3FURkhXN1J4NmlkVlJfSGp2Mi04NXUzbXYwMjVHTWxPVFhWUTVETHp5TGFySm9kbGFybm51dWMzdkpLX3EteGN6blZJcm5qLTVIQWc0SmFzUHc1TWZWdXc3RUY2Y0x0SlhFZ3pqaUNxbmJVSENGV2o1Nk9Wd2VqTW01TUZLQXpaSUFyYjVPdDVhOUVad2xLa1ZKYXVtb21JM1p2X3J5Nk5YbExhQW9GVHlNNkRQdnZ6TGtQNzlxX2FYNU8tWDY1SE5XaWtCdEMzVXh0Wm1HV2xmTnRGNlZGMWxCd0FFQU1DcUxoQnl2YkwxM05VWnJqdU5DcGdMdEI3Rm94OXNoLVZ5YktTVmtVdnlCbHFuVmpKdmJOYXltOGhWdTd4WUNDelZiOWFHS2wtM3ZCdnhBelN3OEdfMGN2aERiTTRZRGhOelllMWNlaDJUQ1g4UTBUSUNqOXY1TWFMMTB1bE1HUTFWYTdQY1YySUlTOURudVdqeWJWc0pvTm1lek5fcVV5YWZHLXpidkhkVWd6RnZOOTZYSTdhSFNnQTJEdzFDaGVaNnRIdFk2RWVvbDdVaEl3eUVmZDhQWVdKOGNBV3diN1JUbzRQX3VaZmdnSldXenh5Zl9taWxTNE1sWElQV0JGaktQZWpvWjJYdHB1ZzlXZWZibHZxajlxekpLNW1TdFRSZ2RVT3lBUjZfdWlLZWFuQnVQeGM5T1l5SmowT3JKemZDcFZ4ZFRVVzRHMHY1VEpNTEFiSndxZV9LdEs4SDJ0bk5KNC0xYWRRNG5XOEJhZEs1NndlcUpvX2poM1ZiTzNMZE5KbU5GcUdLaG1vYWVVS0Q5a3hhbGVRYlJWNkNGQ3E2RlJMMHh5YWNoTHdDWQ==\","
+"      \"email\": \"jnunez@redhat.com\""
+"    },"
+"    \"registry.redhat.io\": {"
+"      \"auth\": \"fHVoYy1wb29sLTFiZDFmZjZlLWYyZGQtNDYwMC05ZWMxLTU1NTYwOGQ2M2Q5ODpleUpoYkdjaU9pSlNVelV4TWlKOS5leUp6ZFdJaU9pSmxPREJsWm1WbFpHSm1aV00wWmpJeFlUZzNORE00WlRRNVkyTXlaakF4TmlKOS5rSXVnUVM2dmR5ZVR3b04wRlZRNkpQdVFIZVN1b3FURkhXN1J4NmlkVlJfSGp2Mi04NXUzbXYwMjVHTWxPVFhWUTVETHp5TGFySm9kbGFybm51dWMzdkpLX3EteGN6blZJcm5qLTVIQWc0SmFzUHc1TWZWdXc3RUY2Y0x0SlhFZ3pqaUNxbmJVSENGV2o1Nk9Wd2VqTW01TUZLQXpaSUFyYjVPdDVhOUVad2xLa1ZKYXVtb21JM1p2X3J5Nk5YbExhQW9GVHlNNkRQdnZ6TGtQNzlxX2FYNU8tWDY1SE5XaWtCdEMzVXh0Wm1HV2xmTnRGNlZGMWxCd0FFQU1DcUxoQnl2YkwxM05VWnJqdU5DcGdMdEI3Rm94OXNoLVZ5YktTVmtVdnlCbHFuVmpKdmJOYXltOGhWdTd4WUNDelZiOWFHS2wtM3ZCdnhBelN3OEdfMGN2aERiTTRZRGhOelllMWNlaDJUQ1g4UTBUSUNqOXY1TWFMMTB1bE1HUTFWYTdQY1YySUlTOURudVdqeWJWc0pvTm1lek5fcVV5YWZHLXpidkhkVWd6RnZOOTZYSTdhSFNnQTJEdzFDaGVaNnRIdFk2RWVvbDdVaEl3eUVmZDhQWVdKOGNBV3diN1JUbzRQX3VaZmdnSldXenh5Zl9taWxTNE1sWElQV0JGaktQZWpvWjJYdHB1ZzlXZWZibHZxajlxekpLNW1TdFRSZ2RVT3lBUjZfdWlLZWFuQnVQeGM5T1l5SmowT3JKemZDcFZ4ZFRVVzRHMHY1VEpNTEFiSndxZV9LdEs4SDJ0bk5KNC0xYWRRNG5XOEJhZEs1NndlcUpvX2poM1ZiTzNMZE5KbU5GcUdLaG1vYWVVS0Q5a3hhbGVRYlJWNkNGQ3E2RlJMMHh5YWNoTHdDWQ==\","
+"      \"email\": \"jnunez@redhat.com\""
+"    }"
+"  }"
+"}"
+}
