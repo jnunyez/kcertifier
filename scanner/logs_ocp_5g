@@ -173,10 +173,18 @@ function log_node_resources() {
   echo "############ END MEMORY RESOURCES ##########"
  	echo "###########KERNEL LOGS FROM THE LAST BOOT########"
 
+ 	echo "###########KERNEL DUMP################"
+  KDUMP=$(cat /sys/kernel/kexec_crash_loaded)
+	if [[ "$KDUMP" -ne 1 ]]; then
+		echo "ERROR Kdump is not enabled, enable kdumps"
+		exit	
+	else
+		echo "KDUMP: enabled"
+	fi
 	if [[ "$LOGS" -eq 1 ]]; then
+		echo "###########KERNEL LOGS FROM THE LAST BOOT########"
  		journalctl -b -1
  	fi
- 	echo "#########KERNEL LOGS#######"
 }
 ##########################################################################
 ###############################MAIN#######################################
