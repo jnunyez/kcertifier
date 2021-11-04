@@ -1,0 +1,193 @@
+#!/bin/bash
+
+# stop debugging by default
+set +x
+#
+
+#
+##########################################################################
+##########################BASELINE PARAMETERS#############################
+BASELINE_OCP="4.8.12"
+BASELINE_FLEXRAN="21.03" #IMAGE
+BASELINE_DPDK="20.11.1"
+#BASELINE_E800="3.00 0x800074f5 20.5.4"
+BASELINE_E800="3.00"
+#Intel card and Dell card for E810 get the first field match 3.00 should be enough but log the whole firmware version
+#BASELINE_E700="8.30 0x8000b31a 1.2926.0"
+BASELINE_E700="8.30"
+BASELINE_SRIOV_OPERATOR="4.8.0-202110121407"
+BASELINE_FEC_OPERATOR="2.0.1" # Check version of operator
+###########################DUMP LOGS######################################
+LOGS=0
+##########################################################################
+##########################################################################
+# log_ocp_get_status
+# --------------------------
+# Checks OCP_VERSION and SRIOV OPERATOR. Returns status of ocp objects
+function log_ocp_get_status() {
+	local BASELINE_OCP=$1
+	local BASELINE_SRIOV_OPERATOR=$2
+	local BASELINE_FEC_OPERATOR=$3
+	local LOGS=$4
+
+	OCP_VERSION=`oc get clusterversions.config.openshift.io | grep version | awk '{print $2}'`
+	if [ "$OCP_VERSION" != "$BASELINE_OCP" ]; then
+			echo "ERROR: Wrong OCP version for Baseline testing: "${OCP_VERSION}
+			echo "ERROR: Cluster requires to Install OCP Version"${BASELINE_OCP}
+			exit
+	else
+		if [[ "$LOGS" -eq 1 ]]; then
+			echo "DEBUG: Extra OCP cluster Log Info"
+			oc get all
+			oc status
+		fi
+		echo "INFO: OCP Baseline Version "${OCP_VERSION}
+		echo "##################SRIOV-OPERATOR###############"
+		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
+    SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
+    if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
+			echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${SRIOV_OPERATOR_VERSION}
+			echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_SRIOV_OPERATOR}
+			exit
+		else
+			echo "INFO: SRIOV Operator Version "${SRIOV_OPERATOR_VERSION}
+			echo "#####################FEC ACCELERATOR##########"
+			FEC_OPERATOR=`oc get csv -n vran-acceleration-operators | grep sriov-fec | awk {'print $1'}`
+			FEC_OPERATOR_VERSION=`oc get csv -n vran-acceleration-operators $FEC_OPERATOR -o jsonpath={.spec.version}`
+			if [ "$FEC_OPERATOR_VERSION" != "$BASELINE_FEC_OPERATOR" ]; then
+				echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${FEC_OPERATOR_VERSION}
+				echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_FEC_OPERATOR}
+				exit
+			else
+				echo "INFO: FEC Acceleration Operator Version "${FEC_OPERATOR_VERSION}
+			fi
+			if [[ "$LOGS" -eq 1 ]]; then
+				echo "DEBUG: Extra SRIOV Log Info"
+				oc get csv  -n openshift-sriov-network-operator >> $LOGFILE
+			fi
+		fi
+	fi
+}
+
+# log_get_accessible_ip
+# --------------------------
+# Given the name of a node reuturns its IP address that is accessible.
+function log_ocp_get_accessible_ip() {
+  local NODE_NAME="${1}"
+  NODE_IP=$(oc get nodes -o wide | grep $NODE_NAME | awk -F' ' '{print $6}')
+}
+
+# log_ocp_get_names
+# -----------------------------
+# Returns the names of the nodes
+function log_ocp_get_names() {
+  oc get nodes --no-headers -o custom-columns=NAME:.metadata.name
+}
+
+# log_node_resources
+# --------------------------
+# Returns BIOS, Network, kernel logs, memory, and compute info of a node
+function log_node_resources() {
+	BASELINE_E700=$1
+	BASELINE_E800=$2
+	LOGS=$3
+	echo "###########BIOS######################"
+	if [ -d "/sys/devices/virtual/dmi" ]; then
+		cat /sys/devices/virtual/dmi/id/bios_version
+		cat /sys/devices/virtual/dmi/id/board_vendor
+		cat /sys/devices/virtual/dmi/id/product_name
+	else
+	  echo "INFO: BIOS model not supported"
+	fi
+	echo "###########BMC VERSION#################"
+	if [ -d "/sys/class/ipmi/ipmi0" ]; then
+		cat /sys/class/ipmi/ipmi0/device/bmc/firmware_revision
+  else
+  	echo "INFO: BMC model not supported"
+  fi
+	echo "###########################NETWORK RESOURCES####################"
+ 	for ETH in $(find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n' | sort); do
+		DRIVER=$(ethtool -i $ETH | grep -i "driver" | cut --complement -d " " -f 1)
+		if [ "$DRIVER" = "ice" ] || [ "$DRIVER" = "i40e" ]; then
+      echo '#########################'$ETH'#############################'
+      NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
+			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
+      # Check Baseline_E810
+			if [[ ("$DRIVER" == "ice")  && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E800") ]]; then
+				echo "ERROR Baseline E810: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
+				echo "please upgrade to the BASELINE FIRMWARE VERSION"
+				exit
+			else
+				echo "INFO: Ice driver with Baseline firmware version"
+			fi
+      # Check Baseline_E710
+			if  [[ ( "$DRIVER" = "i40e" ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E700") ]]; then
+				echo "ERROR: Baseline E710: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
+				echo "ERROR: Baseline E710 i40e driver for e710 with wrong firmware version, please upgrade to the BASELINE"
+				exit
+			else
+				echo "INFO: Baseline E710 i40e driver with Baseline firmware version"
+			fi
+
+			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
+			echo $ETH' : SRIOV enabled? '
+			TOTALVFS_PATH="/sys/class/net/${ETH}/device/sriov_totalvfs"
+	 		if [[ -e "$TOTALVFS_PATH" ]]; then
+				echo $ETH' :SR-IOV enabled  '
+				TOTALVFS=$(cat /sys/class/net/${ETH}/device/sriov_totalvfs)
+				NUMVFS=$(cat /sys/class/net/${ETH}/device/sriov_numvfs)
+				echo $ETH' : total VFs '$TOTALVFS
+				echo $ETH' : created VFs '$NUMVFS
+	 		else
+				echo $ETH' :SR-IOV not enabled'
+	 		fi
+	 	fi
+ 	done
+ 	echo "INFO: FEC Acceleration card enabled?"
+  if [[ $(lspci | grep accel) ]]; then
+    lspci -vvv | grep accel
+  else
+  	echo "INFO: no FEC Acceleration card found"
+  fi
+ 	echo "###########################END NETWORK RESOURCES##############"
+
+  echo "############CPU RESOURCES ##########"
+	echo "INFO: Number of CPUs and NUMA Topology###"
+  lscpu | grep -i numa
+	echo "INFO: Thread Siblings###"
+  lscpu -e
+  echo "############ END CPU RESOURCES ##########"
+
+ 	echo "#######MEMORY RESOURCES######################"
+  cat /proc/meminfo | grep MemTotal
+  echo "############ END MEMORY RESOURCES ##########"
+ 	echo "###########KERNEL LOGS FROM THE LAST BOOT########"
+
+	if [[ "$LOGS" -eq 1 ]]; then
+ 		journalctl -b -1
+ 	fi
+ 	echo "#########KERNEL LOGS#######"
+}
+##########################################################################
+###############################MAIN#######################################
+##########################################################################
+
+if [ -z "$1" ]; then
+	echo "ERR: No ssh key supplied as argument"
+	exit
+fi
+
+SSH_KEY_FULL_PATH=$1
+LOGFILE=./controller-$(date +"%Y_%m_%d_%I_%M_%p").log
+echo "INFO: gather OCP logs" >> $LOGFILE
+
+echo "##################OCP-BASICS###############" >> $LOGFILE
+log_ocp_get_status $BASELINE_OCP $BASELINE_SRIOV_OPERATOR $BASELINE_FEC_OPERATOR $LOG >> $LOGFILE
+
+# for all nodes
+while read -r NODE_NAME; do
+	LOGFILE=./${NODE_NAME}-$(date +"%Y_%m_%d_%I_%M_%p").log
+	echo "INFO: Gather Node ${NODE_NAME} logs" >> $LOGFILE
+  NODE_IP=`oc get nodes -o wide | grep ${NODE_NAME} | awk -F' ' '{print $6}'`
+	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${LOGS}'" >> $LOGFILE
+done < <(log_ocp_get_names)
