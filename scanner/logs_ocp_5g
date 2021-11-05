@@ -1,27 +1,18 @@
 #!/bin/bash
 
-####################### EXECUTION INSTRUCTIONS ######################
-#  1) Download the script in the node with access to ocp objects. 
-#  2) Check that KUBECONFIG is already initated to the target cluster.
-#  3) Execute the script with exactly one argument:
-#
-#       ./log_ocp_5g <SSH_ABSOLUTE_KEY_PATH>
-#	
-#	   SSH_ABSOLUTE_KEY_PATH is the absolute private ssh key path
-#
-#####################################################################
-# stop debugging by default
+# stop debugging by default 
 set +x
 #
-#
-#
+# 
 ##########################################################################
 ##########################BASELINE PARAMETERS#############################
 BASELINE_OCP="4.8.12"
 BASELINE_FLEXRAN="21.03" #IMAGE
 BASELINE_DPDK="20.11.1"
+BASELINE_WORKLOAD_DU="vdu-4g-208-new:latest"
+BASELINE_WORKLOAD_TIMING="timingmgr-4g-26"
 #BASELINE_E800="3.00 0x800074f5 20.5.4"
-BASELINE_E800="3.00"
+BASELINE_E800="3.00" 
 #Intel card and Dell card for E810 get the first field match 3.00 should be enough but log the whole firmware version
 #BASELINE_E700="8.30 0x8000b31a 1.2926.0"
 BASELINE_E700="8.30"
@@ -38,21 +29,23 @@ function log_ocp_get_status() {
 	local BASELINE_OCP=$1
 	local BASELINE_SRIOV_OPERATOR=$2
 	local BASELINE_FEC_OPERATOR=$3
-	local LOGS=$4
-
+	local BASELINE_WORKLOAD_DU=$4
+	local BASELINE_WORKLOAD_TIMING=$5
+	local LOGS=$6
+	
 	OCP_VERSION=`oc get clusterversions.config.openshift.io | grep version | awk '{print $2}'`
 	if [ "$OCP_VERSION" != "$BASELINE_OCP" ]; then
 			echo "ERROR: Wrong OCP version for Baseline testing: "${OCP_VERSION}
 			echo "ERROR: Cluster requires to Install OCP Version"${BASELINE_OCP}
 			exit
 	else
-		if [[ "$LOGS" -eq 1 ]]; then
+		if [[ "$LOGS" -eq 1 ]]; then 
 			echo "DEBUG: Extra OCP cluster Log Info"
 			oc get all
 			oc status
 		fi
 		echo "INFO: OCP Baseline Version "${OCP_VERSION}
-		echo "##################SRIOV-OPERATOR###############"
+		echo "##################SRIOV-OPERATOR###############" 
 		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
     SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
     if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
@@ -61,6 +54,22 @@ function log_ocp_get_status() {
 			exit
 		else
 			echo "INFO: SRIOV Operator Version "${SRIOV_OPERATOR_VERSION}
+			echo "####################WORKLOAD VERSIONS###############"
+			if [[ "$LOGS" -eq 1 ]]; then
+				echo "DEBUG: dump pod mapped to artifact versions:"
+				oc get pods --all-namespaces -o=jsonpath='{range .items[*]}{"\n"}{.metadata.name}{":\t"}{range .spec.containers[*]}{.image}{", "}{end}{end}' | grep 4glte | tr -d ','
+			fi
+			WORKLOAD_VERSIONS=`oc get pods --all-namespaces -o=jsonpath='{range .items[*]}{"\n"}{.metadata.name}{":\t"}{range .spec.containers[*]}{.image}{", "}{end}{end}' | grep 4glte | cut -f 2 | tr -d ','`
+			for WORKLOAD_VERSION in $WORKLOAD_VERSIONS
+			do
+				if [[ ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_TIMING") || ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_DU") ]]; then
+					echo "DEBUG: Correct ${WORKLOAD_VERSION} for baseline testing"
+				else 
+					echo "ERROR: Wrong Workload version for Baseline testing: "${WORKLOAD_VERSION}
+					echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: ${BASELINE_WORKLOAD_DU} and ${BASELINE_WORKLOAD_TIMING}"
+					exit
+				fi
+			done
 			echo "#####################FEC ACCELERATOR##########"
 			FEC_OPERATOR=`oc get csv -n vran-acceleration-operators | grep sriov-fec | awk {'print $1'}`
 			FEC_OPERATOR_VERSION=`oc get csv -n vran-acceleration-operators $FEC_OPERATOR -o jsonpath={.spec.version}`
@@ -71,7 +80,7 @@ function log_ocp_get_status() {
 			else
 				echo "INFO: FEC Acceleration Operator Version "${FEC_OPERATOR_VERSION}
 			fi
-			if [[ "$LOGS" -eq 1 ]]; then
+			if [[ "$LOGS" -eq 1 ]]; then 
 				echo "DEBUG: Extra SRIOV Log Info"
 				oc get csv  -n openshift-sriov-network-operator >> $LOGFILE
 			fi
@@ -108,18 +117,18 @@ function log_node_resources() {
 		cat /sys/devices/virtual/dmi/id/product_name
 	else
 	  echo "INFO: BIOS model not supported"
-	fi
+	fi 
 	echo "###########BMC VERSION#################"
 	if [ -d "/sys/class/ipmi/ipmi0" ]; then
 		cat /sys/class/ipmi/ipmi0/device/bmc/firmware_revision
   else
   	echo "INFO: BMC model not supported"
-  fi
+  fi	
 	echo "###########################NETWORK RESOURCES####################"
  	for ETH in $(find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n' | sort); do
 		DRIVER=$(ethtool -i $ETH | grep -i "driver" | cut --complement -d " " -f 1)
 		if [ "$DRIVER" = "ice" ] || [ "$DRIVER" = "i40e" ]; then
-      echo '#########################'$ETH'#############################'
+      echo '#########################'$ETH'#############################' 
       NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
 			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
       # Check Baseline_E810
@@ -140,16 +149,16 @@ function log_node_resources() {
 			fi
 
 			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
-			echo $ETH' : SRIOV enabled? '
+			echo $ETH' : SRIOV enabled? ' 
 			TOTALVFS_PATH="/sys/class/net/${ETH}/device/sriov_totalvfs"
 	 		if [[ -e "$TOTALVFS_PATH" ]]; then
-				echo $ETH' :SR-IOV enabled  '
-				TOTALVFS=$(cat /sys/class/net/${ETH}/device/sriov_totalvfs)
+				echo $ETH' :SR-IOV enabled  ' 
+				TOTALVFS=$(cat /proc/sys/kernel/panic_on_rcu_stall)
 				NUMVFS=$(cat /sys/class/net/${ETH}/device/sriov_numvfs)
 				echo $ETH' : total VFs '$TOTALVFS
 				echo $ETH' : created VFs '$NUMVFS
 	 		else
-				echo $ETH' :SR-IOV not enabled'
+				echo $ETH' :SR-IOV not enabled' 
 	 		fi
 	 	fi
  	done
@@ -157,43 +166,42 @@ function log_node_resources() {
   if [[ $(lspci | grep accel) ]]; then
     lspci -vvv | grep accel
   else
-  	echo "INFO: no FEC Acceleration card found"
+  	echo "INFO: no FEC Acceleration card found" 
   fi
-  echo "###########################END NETWORK RESOURCES##############"
+ 	echo "###########################END NETWORK RESOURCES##############"
 
   echo "############CPU RESOURCES ##########"
 	echo "INFO: Number of CPUs and NUMA Topology###"
   lscpu | grep -i numa
 	echo "INFO: Thread Siblings###"
-  lscpu -e
+  lscpu -e 
   echo "############ END CPU RESOURCES ##########"
 
-  echo "#######MEMORY RESOURCES######################"
+ 	echo "#######MEMORY RESOURCES######################"
   cat /proc/meminfo | grep MemTotal
   echo "############ END MEMORY RESOURCES ##########"
-  echo "###########KERNEL LOGS FROM THE LAST BOOT########"
-
-  echo "###########KERNEL DUMP################"
+ 	
+ 	echo "###########KERNEL DUMP################"
   KDUMP1=$(cat /sys/kernel/kexec_crash_loaded)
-  if [[ "$KDUMP" -ne 1 ]]; then
-	echo "ERROR /sys/kernel/kexec_crash_loaded"
-	exit	
-  else
-	echo "KDUMP: /sys/kernel/kexec_crash_loaded enabled"
-	KDUMP2=$(cat /proc/sys/kernel/panic_on_rcu_stall)
-	if [[ $KDUMP2 -ne 1 ]]; then
-    		echo "ERROR: enable both panic_on_rcu_stall "
-    		exit
-    	else  	
-		echo "KDUMP: panic_on_rcu_stall enabled"
-    	fi  
-  fi
-  if [[ "$LOGS" -eq 1 ]]; then
-	echo "########### KERNEL PANICS ###################"
-	for PANIC in $(find /proc/sys/kernel | grep panic );  do echo $PANIC $(cat $PANIC); done	
-	echo "#########KERNEL LOGS FROM THE LAST BOOT########"
- 	journalctl -b -1
-  fi
+	if [[ "$KDUMP" -ne 1 ]]; then
+		echo "ERROR Kdump is not enabled, enable kdumps"
+		exit	
+	else
+		echo "KDUMP: kexec_crash_loaded enabled"
+		KDUMP2=$(cat /proc/sys/kernel/panic_on_rcu_stall)
+    if [[ $KDUMP2 -ne 1 ]]; then
+    	echo "ERROR: enable both panic_on_rcu_stall "
+    	exit
+    else  	
+			echo "KDUMP: panic_on_rcu_stall enabled"
+    fi
+	fi
+	if [[ "$LOGS" -eq 1 ]]; then 
+		echo "###########KERNEL PANICS###################"
+		for PANIC in $(find /proc/sys/kernel | grep panic );  do echo $PANIC $(cat $PANIC); done
+ 		echo "########KERNEL-LOGS SINCE LAST BOOT########"
+ 		journalctl -b -1
+ 	fi
 }
 ##########################################################################
 ###############################MAIN#######################################
@@ -201,7 +209,7 @@ function log_node_resources() {
 
 if [ -z "$1" ]; then
 	echo "ERR: No ssh key supplied as argument"
-	exit
+	exit 
 fi
 
 SSH_KEY_FULL_PATH=$1
@@ -209,7 +217,7 @@ LOGFILE=./controller-$(date +"%Y_%m_%d_%I_%M_%p").log
 echo "INFO: gather OCP logs" >> $LOGFILE
 
 echo "##################OCP-BASICS###############" >> $LOGFILE
-log_ocp_get_status $BASELINE_OCP $BASELINE_SRIOV_OPERATOR $BASELINE_FEC_OPERATOR $LOG >> $LOGFILE
+log_ocp_get_status $BASELINE_OCP $BASELINE_SRIOV_OPERATOR $BASELINE_FEC_OPERATOR $BASELINE_WORKLOAD_DU $BASELINE_WORKLOAD_TIMING $LOG >> $LOGFILE
 
 # for all nodes
 while read -r NODE_NAME; do
