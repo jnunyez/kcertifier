@@ -56,8 +56,8 @@ function log_ocp_get_status() {
 		echo "INFO: OCP Baseline Version "${OCP_VERSION}
 		echo "##################SRIOV-OPERATOR###############" 
 		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
-    SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
-    if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
+    		SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
+    		if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
 			echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${SRIOV_OPERATOR_VERSION}
 			echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_SRIOV_OPERATOR}
 			exit
@@ -72,7 +72,7 @@ function log_ocp_get_status() {
 			for WORKLOAD_VERSION in $WORKLOAD_VERSIONS
 			do
 				if [[ ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_TIMING") || ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_DU") ]]; then
-					echo "DEBUG: Correct ${WORKLOAD_VERSION} for baseline testing"
+					echo "INFO: Correct ${WORKLOAD_VERSION} for baseline testing"
 				else 
 					echo "ERROR: Wrong Workload version for Baseline testing: "${WORKLOAD_VERSION}
 					echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: ${BASELINE_WORKLOAD_DU} and ${BASELINE_WORKLOAD_TIMING}"
@@ -140,7 +140,7 @@ function log_node_resources() {
       echo '#########################'$ETH'#############################' 
       NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
 			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
-      # Check Baseline_E810
+      			# Check Baseline_E810
 			if [[ ("$DRIVER" == "ice")  && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E800") ]]; then
 				echo "ERROR Baseline E810: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
 				echo "please upgrade to the BASELINE FIRMWARE VERSION"
@@ -148,7 +148,7 @@ function log_node_resources() {
 			else
 				echo "INFO: Ice driver with Baseline firmware version"
 			fi
-      # Check Baseline_E710
+      			# Check Baseline_E710
 			if  [[ ( "$DRIVER" = "i40e" ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E700") ]]; then
 				echo "ERROR: Baseline E710: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
 				echo "ERROR: Baseline E710 i40e driver for e710 with wrong firmware version, please upgrade to the BASELINE"
