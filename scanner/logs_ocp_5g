@@ -1,5 +1,14 @@
 #!/bin/bash
-
+####################### EXECUTION INSTRUCTIONS ######################
+#  1) Download the script in the node with access to ocp objects. 
+#  2) Check that KUBECONFIG is already initated to the target cluster.
+#  3) Execute the script with exactly one argument:
+#
+#       ./log_ocp_5g <SSH_ABSOLUTE_KEY_PATH>
+#	
+#	   SSH_ABSOLUTE_KEY_PATH is the absolute private ssh key path
+#
+#####################################################################
 # stop debugging by default 
 set +x
 #
