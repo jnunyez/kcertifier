@@ -1,27 +1,27 @@
 #!/bin/bash
 ####################### EXECUTION INSTRUCTIONS ######################
-#  1) Download the script in the node with access to ocp objects. 
+#  1) Download the script in the node with access to ocp objects.
 #  2) Check that KUBECONFIG is already initated to the target cluster.
 #  3) Execute the script with exactly one argument:
 #
 #       ./log_ocp_5g <SSH_ABSOLUTE_KEY_PATH>
-#	
+#
 #	   SSH_ABSOLUTE_KEY_PATH is the absolute private ssh key path
 #
 #####################################################################
-# stop debugging by default 
+# debugging disabled
 set +x
-#
-# 
 ##########################################################################
 ##########################BASELINE PARAMETERS#############################
 BASELINE_OCP="4.8.12"
+BASELINE_BIOS="1.1a.N1"
+BASELINE_BMC="9.1"
 BASELINE_FLEXRAN="21.03" #IMAGE
 BASELINE_DPDK="20.11.1"
 BASELINE_WORKLOAD_DU="vdu-4g-208-new:latest"
 BASELINE_WORKLOAD_TIMING="timingmgr-4g-26"
 #BASELINE_E800="3.00 0x800074f5 20.5.4"
-BASELINE_E800="3.00" 
+BASELINE_E800="3.00"
 #Intel card and Dell card for E810 get the first field match 3.00 should be enough but log the whole firmware version
 #BASELINE_E700="8.30 0x8000b31a 1.2926.0"
 BASELINE_E700="8.30"
@@ -41,26 +41,24 @@ function log_ocp_get_status() {
 	local BASELINE_WORKLOAD_DU=$4
 	local BASELINE_WORKLOAD_TIMING=$5
 	local LOGS=$6
-	
+
 	OCP_VERSION=`oc get clusterversions.config.openshift.io | grep version | awk '{print $2}'`
 	if [ "$OCP_VERSION" != "$BASELINE_OCP" ]; then
 			echo "ERROR: Wrong OCP version for Baseline testing: "${OCP_VERSION}
 			echo "ERROR: Cluster requires to Install OCP Version"${BASELINE_OCP}
-			exit
 	else
-		if [[ "$LOGS" -eq 1 ]]; then 
+		if [[ "$LOGS" -eq 1 ]]; then
 			echo "DEBUG: Extra OCP cluster Log Info"
 			oc get all
 			oc status
 		fi
 		echo "INFO: OCP Baseline Version "${OCP_VERSION}
-		echo "##################SRIOV-OPERATOR###############" 
+		echo "##################SRIOV-OPERATOR###############"
 		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
-    		SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
-    		if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
+    SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
+    if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
 			echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${SRIOV_OPERATOR_VERSION}
 			echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_SRIOV_OPERATOR}
-			exit
 		else
 			echo "INFO: SRIOV Operator Version "${SRIOV_OPERATOR_VERSION}
 			echo "####################WORKLOAD VERSIONS###############"
@@ -72,11 +70,10 @@ function log_ocp_get_status() {
 			for WORKLOAD_VERSION in $WORKLOAD_VERSIONS
 			do
 				if [[ ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_TIMING") || ("$WORKLOAD_VERSION" == *"$BASELINE_WORKLOAD_DU") ]]; then
-					echo "INFO: Correct ${WORKLOAD_VERSION} for baseline testing"
-				else 
+					echo "DEBUG: Correct ${WORKLOAD_VERSION} for baseline testing"
+				else
 					echo "ERROR: Wrong Workload version for Baseline testing: "${WORKLOAD_VERSION}
 					echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: ${BASELINE_WORKLOAD_DU} and ${BASELINE_WORKLOAD_TIMING}"
-					exit
 				fi
 			done
 			echo "#####################FEC ACCELERATOR##########"
@@ -85,11 +82,10 @@ function log_ocp_get_status() {
 			if [ "$FEC_OPERATOR_VERSION" != "$BASELINE_FEC_OPERATOR" ]; then
 				echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${FEC_OPERATOR_VERSION}
 				echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_FEC_OPERATOR}
-				exit
 			else
 				echo "INFO: FEC Acceleration Operator Version "${FEC_OPERATOR_VERSION}
 			fi
-			if [[ "$LOGS" -eq 1 ]]; then 
+			if [[ "$LOGS" -eq 1 ]]; then
 				echo "DEBUG: Extra SRIOV Log Info"
 				oc get csv  -n openshift-sriov-network-operator >> $LOGFILE
 			fi
@@ -118,37 +114,45 @@ function log_ocp_get_names() {
 function log_node_resources() {
 	BASELINE_E700=$1
 	BASELINE_E800=$2
-	LOGS=$3
+	BASELINE_BIOS=$3
+	BASELINE_BMC=$4
+	LOGS=$5
 	echo "###########BIOS######################"
 	if [ -d "/sys/devices/virtual/dmi" ]; then
+		BIOS_VERSION=$(cat /sys/devices/virtual/dmi/id/bios_version)
+		if [[ "$BIOS_VERSION" != "$BASELINE_BIOS" ]]; then
+			echo "ERROR: BIOS VERSION: ${BIOS_VERSION} BASELINE BIOS Version: ${BASELINE_BIOS}"
+		fi
 		cat /sys/devices/virtual/dmi/id/bios_version
 		cat /sys/devices/virtual/dmi/id/board_vendor
 		cat /sys/devices/virtual/dmi/id/product_name
 	else
 	  echo "INFO: BIOS model not supported"
-	fi 
+	fi
 	echo "###########BMC VERSION#################"
 	if [ -d "/sys/class/ipmi/ipmi0" ]; then
-		cat /sys/class/ipmi/ipmi0/device/bmc/firmware_revision
+		BMC_VERSION=$(cat /sys/class/ipmi/ipmi0/device/bmc/firmware_revision)
+		if [[ "$BMC_VERSION" != "$BASELINE_BMC" ]]; then
+			echo "ERROR: BMC Version: ${BMC_VERSION} BASELINE BMC Version: ${BASELINE_BMC}"
+		fi
   else
   	echo "INFO: BMC model not supported"
-  fi	
+  fi
 	echo "###########################NETWORK RESOURCES####################"
  	for ETH in $(find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n' | sort); do
 		DRIVER=$(ethtool -i $ETH | grep -i "driver" | cut --complement -d " " -f 1)
 		if [ "$DRIVER" = "ice" ] || [ "$DRIVER" = "i40e" ]; then
-      echo '#########################'$ETH'#############################' 
+      echo '#########################'$ETH'#############################'
       NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
 			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
-      			# Check Baseline_E810
+      # Check Baseline_E810
 			if [[ ("$DRIVER" == "ice")  && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E800") ]]; then
 				echo "ERROR Baseline E810: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
 				echo "please upgrade to the BASELINE FIRMWARE VERSION"
-				exit
 			else
 				echo "INFO: Ice driver with Baseline firmware version"
 			fi
-      			# Check Baseline_E710
+      # Check Baseline_E710
 			if  [[ ( "$DRIVER" = "i40e" ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E700") ]]; then
 				echo "ERROR: Baseline E710: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
 				echo "ERROR: Baseline E710 i40e driver for e710 with wrong firmware version, please upgrade to the BASELINE"
@@ -158,16 +162,16 @@ function log_node_resources() {
 			fi
 
 			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
-			echo $ETH' : SRIOV enabled? ' 
+			echo $ETH' : SRIOV enabled? '
 			TOTALVFS_PATH="/sys/class/net/${ETH}/device/sriov_totalvfs"
 	 		if [[ -e "$TOTALVFS_PATH" ]]; then
-				echo $ETH' :SR-IOV enabled  ' 
+				echo $ETH' :SR-IOV enabled  '
 				TOTALVFS=$(cat /proc/sys/kernel/panic_on_rcu_stall)
 				NUMVFS=$(cat /sys/class/net/${ETH}/device/sriov_numvfs)
 				echo $ETH' : total VFs '$TOTALVFS
 				echo $ETH' : created VFs '$NUMVFS
 	 		else
-				echo $ETH' :SR-IOV not enabled' 
+				echo $ETH' :SR-IOV not enabled'
 	 		fi
 	 	fi
  	done
@@ -175,7 +179,7 @@ function log_node_resources() {
   if [[ $(lspci | grep accel) ]]; then
     lspci -vvv | grep accel
   else
-  	echo "INFO: no FEC Acceleration card found" 
+  	echo "INFO: no FEC Acceleration card found"
   fi
  	echo "###########################END NETWORK RESOURCES##############"
 
@@ -183,29 +187,28 @@ function log_node_resources() {
 	echo "INFO: Number of CPUs and NUMA Topology###"
   lscpu | grep -i numa
 	echo "INFO: Thread Siblings###"
-  lscpu -e 
+  lscpu -e
   echo "############ END CPU RESOURCES ##########"
 
  	echo "#######MEMORY RESOURCES######################"
   cat /proc/meminfo | grep MemTotal
   echo "############ END MEMORY RESOURCES ##########"
- 	
+
  	echo "###########KERNEL DUMP################"
   KDUMP1=$(cat /sys/kernel/kexec_crash_loaded)
 	if [[ "$KDUMP" -ne 1 ]]; then
 		echo "ERROR Kdump is not enabled, enable kdumps"
-		exit	
+		exit
 	else
 		echo "KDUMP: kexec_crash_loaded enabled"
 		KDUMP2=$(cat /proc/sys/kernel/panic_on_rcu_stall)
     if [[ $KDUMP2 -ne 1 ]]; then
     	echo "ERROR: enable both panic_on_rcu_stall "
-    	exit
-    else  	
+    else
 			echo "KDUMP: panic_on_rcu_stall enabled"
     fi
 	fi
-	if [[ "$LOGS" -eq 1 ]]; then 
+	if [[ "$LOGS" -eq 1 ]]; then
 		echo "###########KERNEL PANICS###################"
 		for PANIC in $(find /proc/sys/kernel | grep panic );  do echo $PANIC $(cat $PANIC); done
  		echo "########KERNEL-LOGS SINCE LAST BOOT########"
@@ -218,7 +221,7 @@ function log_node_resources() {
 
 if [ -z "$1" ]; then
 	echo "ERR: No ssh key supplied as argument"
-	exit 
+	exit
 fi
 
 SSH_KEY_FULL_PATH=$1
@@ -233,5 +236,5 @@ while read -r NODE_NAME; do
 	LOGFILE=./${NODE_NAME}-$(date +"%Y_%m_%d_%I_%M_%p").log
 	echo "INFO: Gather Node ${NODE_NAME} logs" >> $LOGFILE
   NODE_IP=`oc get nodes -o wide | grep ${NODE_NAME} | awk -F' ' '{print $6}'`
-	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${LOGS}'" >> $LOGFILE
+	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${BASELINE_BIOS}' '${BASELINE_BMC}' '${LOGS}'" >> $LOGFILE
 done < <(log_ocp_get_names)
