@@ -159,7 +159,7 @@ function log_node_resources() {
   else
   	echo "INFO: no FEC Acceleration card found"
   fi
- 	echo "###########################END NETWORK RESOURCES##############"
+  echo "###########################END NETWORK RESOURCES##############"
 
   echo "############CPU RESOURCES ##########"
 	echo "INFO: Number of CPUs and NUMA Topology###"
@@ -168,23 +168,32 @@ function log_node_resources() {
   lscpu -e
   echo "############ END CPU RESOURCES ##########"
 
- 	echo "#######MEMORY RESOURCES######################"
+  echo "#######MEMORY RESOURCES######################"
   cat /proc/meminfo | grep MemTotal
   echo "############ END MEMORY RESOURCES ##########"
- 	echo "###########KERNEL LOGS FROM THE LAST BOOT########"
+  echo "###########KERNEL LOGS FROM THE LAST BOOT########"
 
- 	echo "###########KERNEL DUMP################"
-  KDUMP=$(cat /sys/kernel/kexec_crash_loaded)
-	if [[ "$KDUMP" -ne 1 ]]; then
-		echo "ERROR Kdump is not enabled, enable kdumps"
-		exit	
-	else
-		echo "KDUMP: enabled"
-	fi
-	if [[ "$LOGS" -eq 1 ]]; then
-		echo "###########KERNEL LOGS FROM THE LAST BOOT########"
- 		journalctl -b -1
- 	fi
+  echo "###########KERNEL DUMP################"
+  KDUMP1=$(cat /sys/kernel/kexec_crash_loaded)
+  if [[ "$KDUMP" -ne 1 ]]; then
+	echo "ERROR /sys/kernel/kexec_crash_loaded"
+	exit	
+  else
+	echo "KDUMP: /sys/kernel/kexec_crash_loaded enabled"
+	KDUMP2=$(cat /proc/sys/kernel/panic_on_rcu_stall)
+	if [[ $KDUMP2 -ne 1 ]]; then
+    		echo "ERROR: enable both panic_on_rcu_stall "
+    		exit
+    	else  	
+		echo "KDUMP: panic_on_rcu_stall enabled"
+    	fi  
+  fi
+  if [[ "$LOGS" -eq 1 ]]; then
+	echo "########### KERNEL PANICS ###################"
+	for PANIC in $(find /proc/sys/kernel | grep panic );  do echo $PANIC $(cat $PANIC); done	
+	echo "#########KERNEL LOGS FROM THE LAST BOOT########"
+ 	journalctl -b -1
+  fi
 }
 ##########################################################################
 ###############################MAIN#######################################
