@@ -198,15 +198,17 @@ function log_node_resources() {
 
  	echo "###########KERNEL DUMP################"
  	if [[ !$(systemctl is-active --quiet kdump.service) ]]; then
- 		echo "ERROR: Kdump service not active"
-    if [[ ! -d /var/crash ]]; then
-  		echo "ERROR: Kdump default path for vmcore does not exist"
+    if [[ -d /var/crash ]]; then
 	    if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
 				echo "ERROR Kdump: panic_on_rcu_stall disabled"
 			else
-				echo "KDUMP properly enabled"
+				echo "KDUMP Service properly enabled"
 	  	fi
+	  else
+  		echo "ERROR: Kdump default path for vmcore does not exist"
 	  fi
+	else
+ 		echo "ERROR: Kdump service not active"
 	fi
  	echo "###########END KERNEL DUMP################"
 	if [[ "$LOGS" -eq 1 ]]; then
