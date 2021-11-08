@@ -123,9 +123,12 @@ function log_node_resources() {
 		if [[ "$BIOS_VERSION" != "$BASELINE_BIOS" ]]; then
 			echo "ERROR: BIOS VERSION: ${BIOS_VERSION} BASELINE BIOS Version: ${BASELINE_BIOS}"
 		fi
-		cat /sys/devices/virtual/dmi/id/bios_version
-		cat /sys/devices/virtual/dmi/id/board_vendor
-		cat /sys/devices/virtual/dmi/id/product_name
+		BIOS_VERSION=$(cat /sys/devices/virtual/dmi/id/bios_version)
+		BOARD_VENDOR=$(cat /sys/devices/virtual/dmi/id/board_vendor)
+		PRODUCT_NAME=$(cat /sys/devices/virtual/dmi/id/product_name)
+		echo "VERSION: $BIOS_VERSION"
+		echo "VENDOR: $BOARD_VENDOR"
+		echo "PRODUCT: $PRODUCT"
 	else
 	  echo "INFO: BIOS model not supported"
 	fi
