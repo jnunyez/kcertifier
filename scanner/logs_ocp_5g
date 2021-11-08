@@ -117,7 +117,7 @@ function log_node_resources() {
 	BASELINE_BIOS=$3
 	BASELINE_BMC=$4
 	LOGS=$5
-	echo "###########BIOS######################"
+	echo "#############BIOS######################"
 	if [ -d "/sys/devices/virtual/dmi" ]; then
 		BIOS_VERSION=$(cat /sys/devices/virtual/dmi/id/bios_version)
 		if [[ "$BIOS_VERSION" != "$BASELINE_BIOS" ]]; then
@@ -132,11 +132,13 @@ function log_node_resources() {
 	else
 	  echo "INFO: BIOS model not supported"
 	fi
-	echo "###########BMC VERSION#################"
+	echo "##############BMC###################"
 	if [ -d "/sys/class/ipmi/ipmi0" ]; then
 		BMC_VERSION=$(cat /sys/class/ipmi/ipmi0/device/bmc/firmware_revision)
 		if [[ "$BMC_VERSION" != "$BASELINE_BMC" ]]; then
 			echo "ERROR: BMC Version: ${BMC_VERSION} BASELINE BMC Version: ${BASELINE_BMC}"
+		else
+			echo " VERSION: "$BMC_VERSION
 		fi
   else
   	echo "INFO: BMC model not supported"
