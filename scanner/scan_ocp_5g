@@ -197,7 +197,7 @@ function log_node_resources() {
   echo "############ END MEMORY RESOURCES ##########"
 
  	echo "###########KERNEL DUMP################"
- 	if [[ "$(systemctl is-active --quiet kdump.service)" == "active" ]]; then
+ 	if [[ "$(systemctl is-active kdump.service)" == "active" ]]; then
     if [[ -d /var/crash ]]; then
 	    if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
 				echo "ERROR Kdump: panic_on_rcu_stall disabled"
