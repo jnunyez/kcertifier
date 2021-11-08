@@ -128,7 +128,7 @@ function log_node_resources() {
 		PRODUCT_NAME=$(cat /sys/devices/virtual/dmi/id/product_name)
 		echo "VERSION: $BIOS_VERSION"
 		echo "VENDOR: $BOARD_VENDOR"
-		echo "PRODUCT: $PRODUCT"
+		echo "PRODUCT: $PRODUCT_NAME"
 	else
 	  echo "INFO: BIOS model not supported"
 	fi
@@ -138,7 +138,7 @@ function log_node_resources() {
 		if [[ "$BMC_VERSION" != "$BASELINE_BMC" ]]; then
 			echo "ERROR: BMC Version: ${BMC_VERSION} BASELINE BMC Version: ${BASELINE_BMC}"
 		else
-			echo " VERSION: "$BMC_VERSION
+			echo "VERSION: "$BMC_VERSION
 		fi
   else
   	echo "INFO: BMC model not supported"
@@ -186,7 +186,7 @@ function log_node_resources() {
   else
   	echo "INFO: no FEC Acceleration card found"
   fi
- 	echo "###########################END NETWORK RESOURCES##############"
+ 	echo "########################END NETWORK RESOURCES##############"
 
   echo "############CPU RESOURCES ##########"
 	echo "INFO: Number of CPUs and NUMA Topology###"
@@ -200,19 +200,18 @@ function log_node_resources() {
   echo "############ END MEMORY RESOURCES ##########"
 
  	echo "###########KERNEL DUMP################"
-  KDUMP1=$(cat /sys/kernel/kexec_crash_loaded)
-	if [[ "$KDUMP" -ne 1 ]]; then
-		echo "ERROR Kdump is not enabled, enable kdumps"
-		exit
-	else
-		echo "KDUMP: kexec_crash_loaded enabled"
-		KDUMP2=$(cat /proc/sys/kernel/panic_on_rcu_stall)
-    if [[ $KDUMP2 -ne 1 ]]; then
-    	echo "ERROR: enable both panic_on_rcu_stall "
-    else
-			echo "KDUMP: panic_on_rcu_stall enabled"
-    fi
+ 	if [[ !$(systemctl is-active --quiet kdump.service) ]]; then
+ 		echo "ERROR: Kdump service not active"
+    if [[ ! -d /var/crash ]]; then
+  		echo "ERROR: Kdump default path for vmcore does not exist"
+	    if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
+				echo "ERROR Kdump: panic_on_rcu_stall disabled"
+			else
+				echo "KDUMP properly enabled"
+	  	fi
+	  fi
 	fi
+ 	echo "###########END KERNEL DUMP################"
 	if [[ "$LOGS" -eq 1 ]]; then
 		echo "###########KERNEL PANICS###################"
 		for PANIC in $(find /proc/sys/kernel | grep panic );  do echo $PANIC $(cat $PANIC); done
