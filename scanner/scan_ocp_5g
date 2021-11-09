@@ -14,12 +14,14 @@ set +x
 ##########################################################################
 ##########################BASELINE PARAMETERS#############################
 BASELINE_OCP="4.8.12"
+BASELINE_KERNEL="4.18.20"
 BASELINE_BIOS="1.1a.N1"
 BASELINE_BMC="9.1"
 BASELINE_FLEXRAN="21.03" #IMAGE
 BASELINE_DPDK="20.11.1"
 BASELINE_WORKLOAD_DU="vdu-4g-208-new:latest"
 BASELINE_WORKLOAD_TIMING="timingmgr-4g-26"
+BASELINE_WORKLOAD_CU=""
 #BASELINE_E800="3.00 0x800074f5 20.5.4"
 BASELINE_E800="3.00"
 #Intel card and Dell card for E810 get the first field match 3.00 should be enough but log the whole firmware version
