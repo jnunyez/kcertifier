@@ -163,7 +163,7 @@ function log_node_resources() {
       echo "INFO: Driver: "$DRIVER 
 			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
 			BUS_PCI=$(ethtool -i $ETH | grep -i "bus-info" | cut -d " " -f 2)
-			echo "$(lspci -vnns $BUS_PCI | grep -i Subsystem | xargs)"
+			echo "$(lspci -vnns $BUS_PCI | head -1)"
 			echo $ETH' : SRIOV enabled? '
 			TOTALVFS_PATH="/sys/class/net/${ETH}/device/sriov_totalvfs"
 	 		if [[ -e "$TOTALVFS_PATH" ]]; then
