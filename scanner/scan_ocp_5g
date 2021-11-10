@@ -14,7 +14,7 @@ set +x
 ##########################################################################
 ##########################BASELINE PARAMETERS#############################
 BASELINE_OCP="4.8.12"
-BASELINE_KERNEL="4.18.20"
+BASELINE_KERNEL="4.18.0-305.19.1.el8_4.x86_64"
 BASELINE_BIOS="1.1a.N1"
 BASELINE_BMC="9.1"
 BASELINE_FLEXRAN="21.03" #IMAGE
@@ -197,8 +197,13 @@ function log_node_resources() {
  	echo "#######MEMORY RESOURCES######################"
   cat /proc/meminfo | grep MemTotal
   echo "############ END MEMORY RESOURCES ##########"
-
- 	echo "###########KERNEL DUMP################"
+  echo "########### KERNEL VERSION ###########"
+  uname -a
+ 	if [[ "$(uname -r)" != "$BASELINE_KERNEL" ]]; then
+				echo "ERROR Kernel Version: $(uname -r) differs from Baseline Kernel: "$BASELINE_KERNEL
+ 	fi
+  echo "########### END KERNEL VERSION ###########"
+ 	echo "############ KERNEL DUMP #################"
  	if [[ "$(systemctl is-active kdump.service)" == "active" ]]; then
     if [[ -d /var/crash ]]; then
 	    if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
