@@ -118,7 +118,8 @@ function log_node_resources() {
 	BASELINE_E800=$2
 	BASELINE_BIOS=$3
 	BASELINE_BMC=$4
-	LOGS=$5
+	BASELINE_KERNEL=$5
+	LOGS=$6
 	echo "#############BIOS######################"
 	if [ -d "/sys/devices/virtual/dmi" ]; then
 		BIOS_VERSION=$(cat /sys/devices/virtual/dmi/id/bios_version)
@@ -246,5 +247,5 @@ while read -r NODE_NAME; do
 	LOGFILE=./${NODE_NAME}-$(date +"%Y_%m_%d_%I_%M_%p").log
 	echo "INFO: Gather Node ${NODE_NAME} logs" >> $LOGFILE
   NODE_IP=`oc get nodes -o wide | grep ${NODE_NAME} | awk -F' ' '{print $6}'`
-	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${BASELINE_BIOS}' '${BASELINE_BMC}' '${LOGS}'" >> $LOGFILE
+	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${BASELINE_BIOS}' '${BASELINE_BMC}' '${BASELINE_KERNEL}' '${LOGS}'" >> $LOGFILE
 done < <(log_ocp_get_names)
