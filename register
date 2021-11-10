@@ -1,3 +1,0 @@
-AI_URL='http://192.168.1.134:8090'
-curl -s -X POST "$AI_URL/api/assisted-install/v1/clusters" \
-   -d @./deployment-multinodes.json --header "Content-Type: application/json" | jq .
