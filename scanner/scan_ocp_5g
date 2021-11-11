@@ -57,8 +57,8 @@ function log_ocp_get_status() {
 		echo "INFO: OCP Baseline Version "${OCP_VERSION}
 		echo "##################SRIOV-OPERATOR###############"
 		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
-    SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
-    if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
+    	SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
+    	if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
 			echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${SRIOV_OPERATOR_VERSION}
 			echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_SRIOV_OPERATOR}
 		else
@@ -120,6 +120,14 @@ function log_node_resources() {
 	BASELINE_BMC=$4
 	BASELINE_KERNEL=$5
 	LOGS=$6
+
+	#intel salem channel
+	BASELINE_VENDOR_ID_CVL="0x8086"
+	BASELINE_DEVICE_ID_CVL="0x1593"
+	#if some baseline is reached for subsystem
+	#BASELINE_SUB_ID
+	#BASELINE_SUB_DEV_ID
+
 	echo "#############BIOS######################"
 	if [ -d "/sys/devices/virtual/dmi" ]; then
 		BIOS_VERSION=$(cat /sys/devices/virtual/dmi/id/bios_version)
@@ -153,20 +161,28 @@ function log_node_resources() {
       echo '#########################'$ETH'#############################'
       NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
 			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
-      # Check Baseline_E810
+      # Check Baseline_E810 CVL
 			if [[ ("$DRIVER" == "ice")  && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E800") ]]; then
-				echo "ERROR: Baseline E810 "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
-				echo "ERROR: Baseline E810 ICE driver with wrong firmware version"
+				echo "ERROR: Baseline CVL "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
+				echo "ERROR: Baseline CVL ICE driver with wrong firmware version"
 			fi
-      # Check Baseline_E710
+      # Check Baseline_E710 FVL
 			if  [[ ( "$DRIVER" == "i40e" ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E700") ]]; then
-				echo "ERROR: Baseline E710: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
-				echo "ERROR: Baseline E710 i40e driver for e710 with wrong firmware version"
+				echo "ERROR: Baseline FVL: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
+				echo "ERROR: Baseline FVL i40e driver for e710 with wrong firmware version"
 			fi
-      echo "INFO: Driver: "$DRIVER 
+      echo "INFO: Driver: "$DRIVER
 			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
 			BUS_PCI=$(ethtool -i $ETH | grep -i "bus-info" | cut -d " " -f 2)
-			echo "$(lspci -vnns $BUS_PCI | head -1)"
+			echo "$(lspci -vnns $BUS_PCI | head -2)"
+
+			DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}/device`
+			if [[ ("$DRIVER" == "ice")  && ("$DEVICE_ID" != "$BASELINE_DEVICE_ID_CVL") ]]; then
+				echo "ERROR: BASELINE CVL salem channel device id "$BASELINE_DEVICE_ID_CVL" differs from "$DEVICE_ID
+				#SUB_VENDOR_ID=`cat /sys/bus/pci/devices/${BUS_PCI}`
+				#SUB_DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}`
+			fi
+
 			echo $ETH' : SRIOV enabled? '
 			TOTALVFS_PATH="/sys/class/net/${ETH}/device/sriov_totalvfs"
 	 		if [[ -e "$TOTALVFS_PATH" ]]; then
