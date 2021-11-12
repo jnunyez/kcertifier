@@ -4,7 +4,7 @@
 #  2) Check that KUBECONFIG is already initated to the target cluster.
 #  3) Execute the script with exactly one argument:
 #
-#       ./log_ocp_5g <SSH_ABSOLUTE_KEY_PATH>
+#       ./scan_ocp_5g <SSH_ABSOLUTE_KEY_PATH>
 #
 #	   SSH_ABSOLUTE_KEY_PATH is the absolute private ssh key path
 #
@@ -57,8 +57,8 @@ function log_ocp_get_status() {
 		echo "INFO: OCP Baseline Version "${OCP_VERSION}
 		echo "##################SRIOV-OPERATOR###############"
 		SRIOV_OPERATOR=`oc get csv -n openshift-sriov-network-operator | grep sriov-network-operator | awk {'print $1'}`
-    	SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
-    	if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
+    SRIOV_OPERATOR_VERSION=`oc get csv -n openshift-sriov-network-operator $SRIOV_OPERATOR -o jsonpath={.spec.version}`
+    if [ "$SRIOV_OPERATOR_VERSION" != "$BASELINE_SRIOV_OPERATOR" ]; then
 			echo "ERROR: Wrong SRIOV OPERATOR VERSION for Baseline testing: "${SRIOV_OPERATOR_VERSION}
 			echo "ERROR: Cluster requires the SRIOV_OPERATOR Version: "${BASELINE_SRIOV_OPERATOR}
 		else
