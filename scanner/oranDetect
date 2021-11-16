@@ -95,9 +95,21 @@ function log_ocp_get_status() {
 	fi
 }
 
+# log_get_worker_ip
+#------------------------
+# Given the name of a node in cluster returns IP address if it is not a master
+#function log_ocp_get_oran_ip() {
+#  local NODE_NAME="${1}"
+#  if [ $(oc get node $NODE_NAME --no-header | grep -v "master") ]; then
+#  	NODE_IP=$(oc get nodes -o wide | grep $NODE_NAME | awk -F' ' '{print $6}')
+#  else
+#  	echo "INFO: Omit master node"
+#  fi
+#}
+
 # log_get_accessible_ip
 # --------------------------
-# Given the name of a node reuturns its IP address that is accessible.
+# Given the name of a node returns its IP address that is accessible.
 function log_ocp_get_accessible_ip() {
   local NODE_NAME="${1}"
   NODE_IP=$(oc get nodes -o wide | grep $NODE_NAME | awk -F' ' '{print $6}')
