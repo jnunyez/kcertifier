@@ -21,7 +21,7 @@ BASELINE_FLEXRAN="21.03" #IMAGE
 BASELINE_DPDK="20.11.1"
 BASELINE_WORKLOAD_DU="vdu-4g-208-new:latest"
 BASELINE_WORKLOAD_TIMING="timingmgr-4g-26"
-BASELINE_WORKLOAD_CU=""
+BASELINE_WORKLOAD_CU="TBA"
 #BASELINE_E800="3.00 0x800074f5 20.5.4"
 BASELINE_E800="3.00"
 #Intel card and Dell card for E810 get the first field match 3.00 should be enough but log the whole firmware version
@@ -149,39 +149,40 @@ function log_node_resources() {
 		else
 			echo "VERSION: "$BMC_VERSION
 		fi
-  else
-  	echo "INFO: BMC model not supported"
-  fi
+  	else
+  		echo "INFO: BMC model not supported"
+  	fi
 	echo "###########################NETWORK RESOURCES####################"
  	for ETH in $(find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n' | sort); do
 		DRIVER=$(ethtool -i $ETH | grep -i "driver" | cut --complement -d " " -f 1)
 		if [ "$DRIVER" = "ice" ] || [ "$DRIVER" = "i40e" ]; then
-      echo '#########################'$ETH'#############################'
-      NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
+      			echo '#########################'$ETH'#############################'
+      			NIC_FIRMWARE_VERSION_FULL=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1)
 			NIC_FIRMWARE_VERSION=$(ethtool -i $ETH | grep -i "firmware-version" | cut --complement -d " " -f 1 | cut -d " " -f 1)
-      echo "INFO: Driver: "$DRIVER
+      			echo "INFO: Driver: "$DRIVER
 			echo "firmware-version: "$NIC_FIRMWARE_VERSION_FULL
-      # Check FVL firmware
+      			# Check FVL firmware
 			if  [[ ( "$DRIVER" == "i40e" ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E700") ]]; then
 				echo "ERROR: Baseline FVL: "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E700
 				echo "ERROR: Baseline FVL i40e driver for e710 with wrong firmware version"
 			fi
-      # Check CVL
+      			# Check CVL and STS2 got proper FW Version
 			BUS_PCI=$(ethtool -i $ETH | grep -i "bus-info" | cut -d " " -f 2)
 			echo "$(lspci -vnns $BUS_PCI | head -2)"
 			if [[ ("$DRIVER" == "ice") ]]; then
 				SUB_DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}/subsystem_device`
-				#SUB_VENDOR_ID=`cat /sys/bus/pci/devices/${BUS_PCI}`
 				DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}/device`
-				# Silicom STS2
-				if [[ ( ("$DEVICE_ID" == "0x1591") && ("0x02d8" == "$SUB_DEVICE_ID") )  && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_STS2") ]]; then
-					echo "ERROR: STS2 Baseline CVL   NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_STS2
-					echo "ERROR: STS2 CVL driver with wrong firmware version"
-			  fi
-			  # Intel E810-XXV and E810-C
+				# Silicom STS2 Baseline
+				BASELINE_SILICOM_DEVICE_ID="0x1591"
+				BASELINE_SILICOM_SUBDEV_ID="0x02d8"
+				if [[ ( ("$DEVICE_ID" == "$BASELINE_SILICOM_DEVICE_ID") && ("$BASELINE_SILICOM_SUBDEV_ID" == "$SUB_DEVICE_ID") ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_STS2") ]]; then
+					echo "ERROR: STS2 Baseline NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_STS2
+					echo "ERROR: Silicom with wrong firmware version"
+			  	fi
+			  	# Intel E810-XXV and E810-C
 				if [[ ( ("$DEVICE_ID" == "0x159b") || ("0x1593" == "$DEVICE_ID") ) && ("$NIC_FIRMWARE_VERSION" != "$BASELINE_E800") ]]; then
 					echo "ERROR: Intel Baseline CVL "$DRIVER"  NIC_FIRMWARE_VERSION: "$NIC_FIRMWARE_VERSION" BASELINE: "$BASELINE_E800
-					echo "ERROR: Intel Baseline CVL with wrong firmware version"
+					echo "ERROR: Intel CVL with wrong firmware version"
 				fi
 			fi
 
@@ -199,40 +200,41 @@ function log_node_resources() {
 	 	fi
  	done
  	echo "INFO: FEC Acceleration card enabled?"
-  if [[ $(lspci | grep accel) ]]; then
-    lspci -vvv | grep accel
-  else
-  	echo "INFO: no FEC Acceleration card found"
-  fi
+        if [[ $(lspci | grep accel) ]]; then
+    		lspci -vvv | grep accel
+  	else
+  		echo "INFO: no FEC Acceleration card found"
+  	fi
  	echo "########################END NETWORK RESOURCES##############"
 
-  echo "############CPU RESOURCES ##########"
+  	echo "############CPU RESOURCES ##########"
 	echo "INFO: Number of CPUs and NUMA Topology###"
-  lscpu | grep -i numa
+  	lscpu | grep -i numa
 	echo "INFO: Thread Siblings###"
-  lscpu -e
-  echo "############ END CPU RESOURCES ##########"
+  	lscpu -e
+  	echo "############ END CPU RESOURCES ##########"
 
  	echo "#######MEMORY RESOURCES######################"
-  cat /proc/meminfo | grep MemTotal
-  echo "############ END MEMORY RESOURCES ##########"
-  echo "########### KERNEL VERSION ###########"
-  uname -a
+  	cat /proc/meminfo | grep MemTotal
+  	echo "############ END MEMORY RESOURCES ##########"
+ 	echo "########### KERNEL VERSION ###########"
+  	uname -a
  	if [[ "$(uname -r)" != "$BASELINE_KERNEL" ]]; then
-				echo "ERROR Kernel Version: $(uname -r) differs from Baseline Kernel: "$BASELINE_KERNEL
+		#commented since BASELINE_KERNEL is unknown
+		#echo "ERROR Kernel Version: $(uname -r) differs from Baseline Kernel: "$BASELINE_KERNEL
  	fi
-  echo "########### END KERNEL VERSION ###########"
+  	echo "########### END KERNEL VERSION ###########"
  	echo "############ KERNEL DUMP #################"
  	if [[ "$(systemctl is-active kdump.service)" == "active" ]]; then
-    if [[ -d /var/crash ]]; then
-	    if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
+    		if [[ -d /var/crash ]]; then
+	    		if [[ $(cat /proc/sys/kernel/panic_on_rcu_stall) -ne 1 ]]; then
 				echo "ERROR Kdump: panic_on_rcu_stall disabled"
 			else
 				echo "KDUMP Service properly enabled"
+	  		fi
+	  	else
+  			echo "ERROR: Kdump default path for vmcore does not exist"
 	  	fi
-	  else
-  		echo "ERROR: Kdump default path for vmcore does not exist"
-	  fi
 	else
  		echo "ERROR: Kdump service not active"
 	fi
@@ -264,6 +266,6 @@ log_ocp_get_status $BASELINE_OCP $BASELINE_SRIOV_OPERATOR $BASELINE_FEC_OPERATOR
 while read -r NODE_NAME; do
 	LOGFILE=./${NODE_NAME}-$(date +"%Y_%m_%d_%I_%M_%p").log
 	echo "INFO: Gather Node ${NODE_NAME} logs" >> $LOGFILE
-  NODE_IP=`oc get nodes -o wide | grep ${NODE_NAME} | awk -F' ' '{print $6}'`
+  	NODE_IP=`oc get nodes -o wide | grep ${NODE_NAME} | awk -F' ' '{print $6}'`
 	ssh -n -o ConnectTimeout=1 -o StrictHostKeyChecking=no -i ${SSH_KEY_FULL_PATH} core@${NODE_IP} "$(typeset -f); log_node_resources '${BASELINE_E700}' '${BASELINE_E800}' '${BASELINE_BIOS}' '${BASELINE_BMC}' '${BASELINE_KERNEL}' '${LOGS}'" >> $LOGFILE
 done < <(log_ocp_get_names)
