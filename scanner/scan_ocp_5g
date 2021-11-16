@@ -153,6 +153,7 @@ function log_node_resources() {
   		echo "INFO: BMC model not supported"
   	fi
 	echo "###########################NETWORK RESOURCES####################"
+	echo "########################### NICS ##############################"
  	for ETH in $(find /sys/class/net -type l -not -lname '*virtual*' -printf '%f\n' | sort); do
 		DRIVER=$(ethtool -i $ETH | grep -i "driver" | cut --complement -d " " -f 1)
 		if [ "$DRIVER" = "ice" ] || [ "$DRIVER" = "i40e" ]; then
@@ -197,8 +198,10 @@ function log_node_resources() {
 	 		else
 				echo $ETH' :SR-IOV not enabled'
 	 		fi
-	 	fi
+		fi
  	done
+	echo "####################### END NICS #####################"
+	echo "################ ACCELERATION CARDS ##################"
  	echo "INFO: FEC Acceleration card enabled?"
         if [[ $(lspci | grep accel) ]]; then
     		lspci -vvv | grep accel
