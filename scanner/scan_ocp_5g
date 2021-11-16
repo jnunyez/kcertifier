@@ -222,10 +222,10 @@ function log_node_resources() {
   	echo "############ END MEMORY RESOURCES ##########"
  	echo "########### KERNEL VERSION ###########"
   	uname -a
- 	if [[ "$(uname -r)" != "$BASELINE_KERNEL" ]]; then
-		#commented since BASELINE_KERNEL is unknown
+	#commented since BASELINE_KERNEL is unknown
+ 	#if [[ "$(uname -r)" != "$BASELINE_KERNEL" ]]; then	
 		#echo "ERROR Kernel Version: $(uname -r) differs from Baseline Kernel: "$BASELINE_KERNEL
- 	fi
+ 	#fi
   	echo "########### END KERNEL VERSION ###########"
  	echo "############ KERNEL DUMP #################"
  	if [[ "$(systemctl is-active kdump.service)" == "active" ]]; then
