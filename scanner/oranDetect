@@ -185,6 +185,8 @@ function log_node_resources() {
 			if [[ ("$DRIVER" == "ice") ]]; then
 				SUB_DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}/subsystem_device`
 				DEVICE_ID=`cat /sys/bus/pci/devices/${BUS_PCI}/device`
+				DRIVER_VERSION=`cat /sys/bus/pci/devices/${BUS_PCI}/driver/module/version`
+				echo "DRIVER_VERSION: "$DRIVER_VERSION
 				# Silicom STS2 Baseline
 				BASELINE_SILICOM_DEVICE_ID="0x1591"
 				BASELINE_SILICOM_SUBDEV_ID="0x02d8"
